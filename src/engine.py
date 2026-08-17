@@ -108,3 +108,24 @@ def loading_index(embed_model:HuggingFaceEmbedding) -> VectorStoreIndex:
 
     else:
         return _create_new_vector_store(embed_model)
+
+
+def get_chat_engine(
+        llm: Groq,
+        embed_model: HuggingFaceEmbedding
+) -> BaseChatEngine:
+    """Initialises and returns the main conversational RAG chat engine."""
+
+    vector_index: VectorStoreIndex = get_vector_store(embed_model)
+    memory: ChatMemoryBuffer = ChatMemoryBuffer.from_defaults(
+        token_limit=CHAT_MEMORY_TOKEN_LIMIT
+    )
+
+    # Assemble the RAG chat engine
+    chat_engine: BaseChatEngine = vector_index.as_chat_engine(
+        memory=memory,
+        llm=llm,
+        system_prompt=LLM_SYSTEM_PROMPT,
+        similarity_top_k=SIMILARITY_TOP_K,
+    )
+    return chat_engine

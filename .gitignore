@@ -3,3 +3,4 @@
 *.pyo
 __pycache__/
 rag/
+local_storage

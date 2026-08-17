@@ -89,12 +89,12 @@ def _create_new_vector_store(embed_model: HuggingFaceEmbedding) -> VectorStoreIn
     return index
 
 
-def loading_index(embed_model:HuggingFaceEmbedding) -> VectorStoreIndex:
+def get_vector_store(embed_model:HuggingFaceEmbedding) -> VectorStoreIndex:
 
     ''' loads index if it exists or uses helper function to create one, it it doesn not. '''
 
     # creating a parent directory or loading an existing one 
-    VECTOR_STORE_PATH.mkdir(parent=True, exist_ok=True)
+    VECTOR_STORE_PATH.mkdir(parents=True, exist_ok=True)
 
     # checking if directory contains any files
     if any(VECTOR_STORE_PATH.iterdir()):

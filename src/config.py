@@ -2,7 +2,7 @@ from pathlib import Path
 
 # --- LLM Model Configuration ---
 LLM_MODEL: str = "llama-3.3-70b-versatile"
-LLM_SYSTEM_PROMPT: str = ("You talk in simple terms about complex topics.")
+LLM_SYSTEM_PROMPT: str = ("Scientific tech language.")
 LLM_MAX_NEW_TOKENS: int = 768
 LLM_TEMPERATURE: float = 0.01
 LLM_TOP_P: float = 0.95

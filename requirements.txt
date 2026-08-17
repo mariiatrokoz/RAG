@@ -1,3 +1,4 @@
 dotenv
 llama_index
 llama_index.llms.groq
+llama_index.embeddings.huggingface

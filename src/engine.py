@@ -35,20 +35,21 @@ from src.model_loader import (
 def main_chat_loop() -> None:
     """Main chat loop."""
 
-    llm: LLM = initialise_llm()
+    llm: Groq = initialise_llm()
+    embed_model: HuggingFaceEmbedding = get_embedding_model()
 
-    memory = ChatSummaryMemoryBuffer.from_defaults(
-        chat_history=[],
+    # memory = ChatSummaryMemoryBuffer.from_defaults(
+    #     chat_history=[],
+    #     llm=llm,
+    #     token_limit=CHAT_MEMORY_TOKEN_LIMIT
+    # )
+
+    chat_engine: BaseChatEngine = get_chat_engine(
         llm=llm,
-        token_limit=CHAT_MEMORY_TOKEN_LIMIT
+        embed_model=embed_model
     )
-
-    conversation: SimpleChatEngine = SimpleChatEngine.from_defaults(
-        llm=llm,
-        system_prompt=LLM_SYSTEM_PROMPT
-    )
-
-    conversation.chat_repl()
+    print("--- RAG Chatbot Initialised. ---")
+    chat_engine.chat_repl()
 
 
 def _create_new_vector_store(embed_model: HuggingFaceEmbedding) -> VectorStoreIndex:

@@ -3,3 +3,4 @@ llama_index
 llama_index.llms.groq
 llama_index.embeddings.huggingface
 ragas
+langchain_community.chat_models.vertexai

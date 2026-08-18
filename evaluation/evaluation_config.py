@@ -10,7 +10,7 @@ from ragas.metrics import (
 )
 
 # --- LLM Model Configuration ---
-EVALUATION_LLM_MODEL: str = "moonshotai/kimi-k2-instruct"
+EVALUATION_LLM_MODEL: str = "openai/gpt-oss-120b"
 
 # --- Embedding Model Configuration ---
 EVALUATION_EMBEDDING_MODEL_NAME: str = "BAAI/bge-large-en-v1.5"

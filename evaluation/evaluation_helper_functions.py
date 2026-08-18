@@ -191,3 +191,61 @@ def save_results(results_df: pd.DataFrame, filename_prefix: str) -> None:
         )
         avg_scores.to_csv(summary_path)
         print(f"--- 💾 Summary of average scores saved to {summary_path} ---")
+
+def evaluate_with_rate_limit(
+    qa_dataset: Dataset,
+    ragas_llm: LlamaIndexLLMWrapper,
+    ragas_embeddings: HuggingFaceEmbeddings,
+) -> pd.DataFrame:
+    """
+    Runs Ragas evaluation row-by-row to accommodate API rate limits,
+    pausing between each evaluation.
+    """
+
+    print("--- 🐢 Running evaluation with rate limiting... ---")
+    number_of_questions: int = len(qa_dataset)
+
+    partial_results_list: list[pd.DataFrame] = []
+    row: dict[str, Any]
+    for i, row in enumerate(qa_dataset):
+        print(
+            f"Evaluating response for question {i + 1}/{number_of_questions}: "
+            f"'{row['question'][:50]}...'"
+        )
+
+        # Create a new dataset with only one row to pass to evaluate
+        single_row_dataset: Dataset = Dataset.from_dict(
+            {key: [value] for key, value in row.items()}
+        )
+
+        # Evaluate just the single row
+        result: EvaluationResult | Executor = evaluate(
+            dataset=single_row_dataset,
+            metrics=EVALUATION_METRICS,
+            llm=ragas_llm,
+            embeddings=ragas_embeddings,
+            raise_exceptions=True,
+        )
+
+        # Convert the result to pandas DataFrame
+        # Append the DataFrame to partial_results_list
+        partial_results_list.append(result.to_pandas())
+
+        # Pause to respect API rate limits, but not after the last item
+        if i + 1 < number_of_questions:
+            print(
+                f"Taking a {SLEEP_PER_EVALUATION} second breather "
+                "to keep the API happy."
+            )
+            time.sleep(SLEEP_PER_EVALUATION)
+
+    # Combine the results from each row back into a single DataFrame
+    results_df: pd.DataFrame = pd.concat(
+        partial_results_list,
+        ignore_index=True
+    )
+
+    print("--- ✅ Evaluation complete! ---")
+
+    return results_df
+    

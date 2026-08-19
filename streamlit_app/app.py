@@ -7,6 +7,10 @@ from app import app_config as cfg
 from app.app_engine import get_chat_engine, get_table_of_contents
 from app.app_model_loader import get_llm
 
+# Must be the first Streamlit call - sets the browser tab's title/icon,
+# separate from st.title() below which sets the on-page heading.
+st.set_page_config(page_title=cfg.PAGE_TITLE)
+
 st.title(cfg.PAGE_TITLE)
 
 uploaded_files = st.sidebar.file_uploader(
@@ -71,6 +75,15 @@ st.session_state.engine = get_chat_engine(cache_key, data_path, persist_dir)
 # assistant turn, keyed by document so switching docs doesn't mix them up.
 citations_by_doc = st.session_state.setdefault("citations_by_doc", {})
 citations = citations_by_doc.setdefault(cache_key, [])
+
+if st.sidebar.button("🧹 Clear conversation"):
+    # The chat engine is cached (@st.cache_resource) and shared across
+    # reruns, so clearing history means resetting its memory in place
+    # rather than dropping the object - only this document's chat is
+    # affected, other cached documents keep their own history.
+    st.session_state.engine.reset()
+    citations.clear()
+    st.rerun()
 
 
 def _describe_source(node_with_score) -> dict:

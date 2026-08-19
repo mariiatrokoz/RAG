@@ -45,3 +45,14 @@ CHUNKING_STRATEGY_CONFIGS: list[dict[str, int]] = [
     {'size': 768, 'overlap': 115},
     {'size': 1024, 'overlap': 200},
 ]
+
+# --- Cross-encoder Model for Reranking ---
+RERANKER_MODEL_NAME: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+
+# --- Configuration for Reranking Evaluation ---
+RERANKER_CONFIGS: list[dict[str, int]] = [
+    {'retriever_k': 10, 'reranker_n': 2},
+    {'retriever_k': 10, 'reranker_n': 5},
+    {'retriever_k': 20, 'reranker_n': 5},
+]
+

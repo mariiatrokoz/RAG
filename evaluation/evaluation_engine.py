@@ -32,6 +32,10 @@ from evaluation.evaluation_helper_functions import (
     evaluate_with_rate_limit
 )
 
+from evaluation.evaluation_config import (
+    CHUNKING_STRATEGY_CONFIGS,
+)
+
 def evaluate_baseline() -> None:
     """
     Evaluates the RAG system using only the settings from config.py.
@@ -89,3 +93,71 @@ def evaluate_baseline() -> None:
     save_results(results_df, "baseline_evaluation")
 
     print("--- ✅ Baseline Evaluation Complete ---")
+
+def evaluate_chunking_strategies() -> None:
+    """ Evaluates different chunk sizes and overlaps. """
+    print("\n--- 🚀 Stage 2: Evaluating Chunking Strategies ---")
+
+    llm_to_test: Groq = initialise_llm()
+
+    embed_model_to_test: HuggingFaceEmbedding = get_embedding_model()
+
+    questions, ground_truths = get_evaluation_data()
+
+    ragas_llm: LlamaIndexLLMWrapper
+    ragas_embeddings: HuggingFaceEmbeddings
+    ragas_llm, ragas_embeddings = load_ragas_models()
+
+    all_results: list[pd.DataFrame] = []
+
+    for config in CHUNKING_STRATEGY_CONFIGS:
+
+        chunk_size, chunk_overlap = config['size'], config['overlap']
+
+        print(f"--- Testing Chunk Config: size={chunk_size}, "
+              f"overlap={chunk_overlap} ---")
+
+        index: VectorStoreIndex = get_or_build_index(
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+            embed_model=embed_model_to_test
+        )
+
+        query_engine: BaseQueryEngine = index.as_query_engine(
+            similarity_top_k=SIMILARITY_TOP_K,
+            llm=llm_to_test
+        )
+
+        qa_dataset: Dataset = generate_qa_dataset(
+            query_engine,
+            questions,
+            ground_truths
+        )
+
+        print("--- Running Ragas evaluation for chunking... ---")
+
+        # --- If you don't have a Rate per Minute limit on your API ---
+        # results_df: pd.DataFrame = evaluate_without_rate_limit(
+        #     qa_dataset,
+        #     ragas_llm,
+        #     ragas_embeddings,
+        # )
+
+        # --- If you do have a Rate per Minute API limit ---
+        results_df: pd.DataFrame = evaluate_with_rate_limit(
+            qa_dataset,
+            ragas_llm,
+            ragas_embeddings,
+        )
+
+        # Add Chunk Size and Chunk Overlap to DataFrame to help tracking
+        results_df['chunk_size'] = chunk_size
+        results_df['chunk_overlap'] = chunk_overlap
+
+        all_results.append(results_df)
+
+    final_df: pd.DataFrame = pd.concat(all_results, ignore_index=True)
+
+    save_results(final_df, "chunking_evaluation")
+
+    print("--- ✅ Chunking Strategy Evaluation Complete ---")

@@ -38,3 +38,10 @@ EVALUATION_METRICS: list[Metric] = [
 # --- Sleep Timers for API Limits ---
 SLEEP_PER_EVALUATION: int = 60
 SLEEP_PER_QUESTION: int = 6
+
+# --- Configuration for Chunking Strategy Evaluation ---
+CHUNKING_STRATEGY_CONFIGS: list[dict[str, int]] = [
+    {'size': 512, 'overlap': 50},
+    {'size': 768, 'overlap': 115},
+    {'size': 1024, 'overlap': 200},
+]

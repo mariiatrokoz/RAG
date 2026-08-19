@@ -4,7 +4,7 @@ import hashlib
 
 import streamlit as st
 from app import app_config as cfg
-from app.app_engine import get_chat_engine
+from app.app_engine import get_chat_engine, get_table_of_contents
 from app.app_model_loader import get_llm
 
 st.title(cfg.PAGE_TITLE)
@@ -37,6 +37,25 @@ else:
     data_path = cfg.DATA_PATH
     persist_dir = cfg.VECTOR_STORE_PATH
     doc_label = "AI Engineering (default book)"
+
+toc = get_table_of_contents(cache_key, data_path)
+if toc:
+    st.sidebar.markdown("### 📑 Table of Contents")
+    chapters: list[dict] = []
+    for entry in toc:
+        if entry["depth"] == 0:
+            chapters.append({**entry, "children": []})
+        elif chapters:
+            chapters[-1]["children"].append(entry)
+    for chapter in chapters:
+        page_suffix = f" (p.{chapter['page']})" if chapter["page"] else ""
+        with st.sidebar.expander(chapter["title"] + page_suffix):
+            for child in chapter["children"]:
+                indent = "&nbsp;&nbsp;&nbsp;&nbsp;" * (child["depth"] - 1)
+                page_suffix = f" · p.{child['page']}" if child["page"] else ""
+                st.markdown(
+                    f"{indent}- {child['title']}{page_suffix}", unsafe_allow_html=True
+                )
 
 st.caption(f"📄 Currently chatting with: **{doc_label}**")
 

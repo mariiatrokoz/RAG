@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import streamlit as st
+from pypdf import PdfReader
 from llama_index.core import (
     SimpleDirectoryReader,
     StorageContext,
@@ -46,6 +47,36 @@ def get_vector_store(embed_model, data_path: Path, persist_dir: Path) -> VectorS
     index = VectorStoreIndex(nodes, embed_model=embed_model)
     index.storage_context.persist(persist_dir=persist_dir.as_posix())
     return index
+
+
+def _flatten_outline(reader: PdfReader, items, depth: int = 0) -> list[dict]:
+    entries = []
+    for item in items:
+        if isinstance(item, list):
+            entries.extend(_flatten_outline(reader, item, depth + 1))
+            continue
+        try:
+            page = reader.get_destination_page_number(item) + 1
+        except Exception:
+            page = None
+        entries.append({"title": item.title, "page": page, "depth": depth})
+    return entries
+
+
+@st.cache_data(show_spinner=False)
+def get_table_of_contents(cache_key: str, _data_path: Path) -> list[dict]:
+    """Reads the embedded bookmarks out of every PDF in the document.
+
+    Not every PDF (and no txt/docx/md file) has these, so an empty list is a
+    normal result, not an error - the sidebar just shows nothing then.
+    """
+
+    toc = []
+    for pdf_path in sorted(_data_path.glob("*.pdf")):
+        reader = PdfReader(pdf_path.as_posix())
+        if reader.outline:
+            toc.extend(_flatten_outline(reader, reader.outline))
+    return toc
 
 
 @st.cache_resource(show_spinner="Reading the document and warming up the model…")

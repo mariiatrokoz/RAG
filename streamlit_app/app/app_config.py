@@ -6,6 +6,7 @@ ROOT_PATH: Path = Path(__file__).resolve().parent.parent.parent
 DATA_PATH: Path = ROOT_PATH / "data"
 VECTOR_STORE_PATH: Path = ROOT_PATH / "local_storage" / "semantic_vector_store"
 EMBEDDING_CACHE_PATH: Path = ROOT_PATH / "local_storage" / "embedding_model"
+UPLOADS_PATH: Path = ROOT_PATH / "local_storage" / "uploads"
 
 EMBEDDING_MODEL: str = "sentence-transformers/all-MiniLM-L6-v2"
 BREAKPOINT_PERCENTILE: int = 90   # lower = the splitter cuts more often
@@ -29,6 +30,6 @@ SYSTEM_PROMPT: str = (
 )
 CHAT_MEMORY_TOKEN_LIMIT: int = 3900
 
-PAGE_TITLE: str = "AI Engineering expert 🤓"
+PAGE_TITLE: str = "Your document expert 🤓"
 
 CHAT_PLACEHOLDER: str = "Ask something ... "

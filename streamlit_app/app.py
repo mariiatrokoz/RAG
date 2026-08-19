@@ -44,14 +44,49 @@ st.caption(f"📄 Currently chatting with: **{doc_label}**")
 # and switching back to a previous document restores its own chat history.
 st.session_state.engine = get_chat_engine(cache_key, data_path, persist_dir)
 
+# The engine's own memory only keeps role/content, not which chunks backed
+# each answer, so citations are tracked separately here: one list per
+# assistant turn, keyed by document so switching docs doesn't mix them up.
+citations_by_doc = st.session_state.setdefault("citations_by_doc", {})
+citations = citations_by_doc.setdefault(cache_key, [])
+
+
+def _describe_source(node_with_score) -> dict:
+    meta = node_with_score.node.metadata
+    name = meta.get("file_name", "document")
+    page = meta.get("page_label")
+    label = f"{name} — page {page}" if page else name
+    snippet = node_with_score.node.get_content().strip()
+    return {
+        "label": label,
+        "score": node_with_score.score or 0.0,
+        "snippet": snippet[:400] + ("…" if len(snippet) > 400 else ""),
+    }
+
+
+def _render_citations(turn_citations: list[dict]) -> None:
+    if not turn_citations:
+        return
+    with st.expander(f"📚 Sources ({len(turn_citations)})"):
+        for c in turn_citations:
+            st.markdown(f"**{c['label']}** · relevance {c['score']:.2f}")
+            st.caption(c["snippet"])
+            st.divider()
+
+
 # Changes the LLM in place, so the conversation survives moving the slider
 #get_llm().temperature = st.sidebar.slider(
 #    "Temperature", 0.0, 1.0, cfg.LLM_TEMPERATURE, 0.05
 #)
 
 # Directly read LlamaIndex's internal memory to display past messages
+assistant_turn = 0
 for msg in st.session_state.engine.chat_history:
     st.chat_message(msg.role.value).markdown(msg.content)
+    if msg.role.value == "assistant":
+        if assistant_turn < len(citations):
+            _render_citations(citations[assistant_turn])
+        assistant_turn += 1
 
 # Handle new input and stream the response
 
@@ -61,3 +96,6 @@ if question := st.chat_input(cfg.CHAT_PLACEHOLDER):
         with st.spinner("Thinking ... "):
             response = st.session_state.engine.stream_chat(question)
         st.write_stream(response.response_gen)
+        turn_citations = [_describe_source(ns) for ns in response.source_nodes]
+        citations.append(turn_citations)
+        _render_citations(turn_citations)

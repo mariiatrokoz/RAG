@@ -40,18 +40,21 @@ else:
 
 toc = get_table_of_contents(cache_key, data_path)
 if toc:
-    st.sidebar.markdown("### 📑 Table of Contents")
-    chapters: list[dict] = []
-    for entry in toc:
-        if entry["depth"] == 0:
-            chapters.append({**entry, "children": []})
-        elif chapters:
-            chapters[-1]["children"].append(entry)
-    for chapter in chapters:
-        page_suffix = f" (p.{chapter['page']})" if chapter["page"] else ""
-        with st.sidebar.expander(chapter["title"] + page_suffix):
+    # One toggle for the whole list rather than one expander per chapter -
+    # Streamlit doesn't allow nesting expanders inside each other anyway, and
+    # ~20 separate chapter toggles would dominate the sidebar on their own.
+    with st.sidebar.expander("📑 Table of Contents", expanded=False):
+        chapters: list[dict] = []
+        for entry in toc:
+            if entry["depth"] == 0:
+                chapters.append({**entry, "children": []})
+            elif chapters:
+                chapters[-1]["children"].append(entry)
+        for chapter in chapters:
+            page_suffix = f" (p.{chapter['page']})" if chapter["page"] else ""
+            st.markdown(f"**{chapter['title']}**{page_suffix}")
             for child in chapter["children"]:
-                indent = "&nbsp;&nbsp;&nbsp;&nbsp;" * (child["depth"] - 1)
+                indent = "&nbsp;&nbsp;&nbsp;&nbsp;" * child["depth"]
                 page_suffix = f" · p.{child['page']}" if child["page"] else ""
                 st.markdown(
                     f"{indent}- {child['title']}{page_suffix}", unsafe_allow_html=True
@@ -114,7 +117,13 @@ if question := st.chat_input(cfg.CHAT_PLACEHOLDER):
     with st.chat_message("assistant"):
         with st.spinner("Thinking ... "):
             response = st.session_state.engine.stream_chat(question)
-        st.write_stream(response.response_gen)
+        if response.source_nodes:
+            st.write_stream(response.response_gen)
+        else:
+            # No chunk cleared MIN_RETRIEVAL_SCORE, so the question is off-topic
+            # for this document - refuse without ever involving the LLM, instead
+            # of streaming its generic, contextless "Empty Response" filler.
+            st.markdown(cfg.REFUSAL_MESSAGE)
         turn_citations = [_describe_source(ns) for ns in response.source_nodes]
         citations.append(turn_citations)
         _render_citations(turn_citations)

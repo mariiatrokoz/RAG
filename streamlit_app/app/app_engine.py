@@ -16,6 +16,7 @@ from llama_index.core.node_parser import SemanticSplitterNodeParser, SentenceSpl
 from llama_index.core.postprocessor import (
     PrevNextNodePostprocessor,
     SentenceTransformerRerank,
+    SimilarityPostprocessor,
 )
 
 from app import app_config as cfg
@@ -99,9 +100,13 @@ def get_chat_engine(
         llm=get_llm(),
         memory=ChatMemoryBuffer.from_defaults(token_limit=cfg.CHAT_MEMORY_TOKEN_LIMIT),
         system_prompt=cfg.SYSTEM_PROMPT,
-        # Run in order: rerank down to the best few, then glue the chunks that
-        # sat next to them in the document back on, so the LLM reads whole scenes.
+        # Run in order: drop chunks that were never really a match (so an
+        # off-topic question doesn't survive to be answered at all - see
+        # MIN_RETRIEVAL_SCORE), rerank what's left down to the best few, then
+        # glue the chunks that sat next to the survivors back on, so the LLM
+        # reads whole scenes.
         node_postprocessors=[
+            SimilarityPostprocessor(similarity_cutoff=cfg.MIN_RETRIEVAL_SCORE),
             SentenceTransformerRerank(top_n=cfg.RERANKER_TOP_N, model=cfg.RERANKER_MODEL),
             PrevNextNodePostprocessor(
                 docstore=index.docstore, num_nodes=cfg.NEIGHBOUR_CHUNKS, mode="both"
